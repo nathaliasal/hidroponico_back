@@ -1,0 +1,112 @@
+{
+  "base_path": "src/main/java",
+  "package_base": "com.softwarefactory.demo.hidroponico",
+  "modules_base_path": "/com/softwarefactory/demo/hidroponico",
+  "entities": [
+    {
+      "name": "estado",
+      "table_name": "estado",
+      "schema": "public",
+      "id_prefix": "est",
+      "endpoint": "estados",
+      "fields": [
+        {
+          "name": "nombre",
+          "java_type": "String",
+          "column": "nombre",
+          "required": true,
+          "max_length": 50
+        },
+        {
+          "name": "descripcion",
+          "java_type": "String",
+          "column": "descripcion",
+          "required": true,
+          "max_length": 100
+        }
+      ]
+    },
+    {
+      "name": "empresa",
+      "table_name": "empresa",
+      "schema": "public",
+      "id_prefix": "emp",
+      "endpoint": "empresa",
+      "fields": [
+        {
+          "name": "nombre",
+          "java_type": "String",
+          "column": "nombre",
+          "required": true,
+          "max_length": 50
+        },
+        {
+          "name": "descripcion",
+          "java_type": "String",
+          "column": "descripcion",
+          "required": true,
+          "max_length": 100
+        },
+        {
+          "name": "estado",
+          "java_type": "Estado",
+          "column": "estado_id",
+          "type": "relation",
+          "referenced_column": "est_id",
+          "relation_class": "Estado",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "persona",
+      "table_name": "persona",
+      "schema":"public",
+      "id_prefix":"per",
+      "endpoint":"personas",
+      "fields":[
+        {
+          "name": "nombre",
+          "java_type": "String",
+          "column": "nombre",
+          "required": true,
+          "max_length": 50
+        },
+        {
+          "name": "apellido",
+          "java_type": "String",
+          "column": "apellido",
+          "required": true,
+          "max_length": 50
+        },
+        {
+          "name": "telefono",
+          "java_type": "String",
+          "column": "telefono",
+          "required": true,
+          "max_length": 10
+        },
+        {
+          "name": "estado",
+          "java_type": "Estado",
+          "column": "estado_id",
+          "type": "relation",
+          "referenced_column": "est_id",
+          "relation_class": "Estado",
+          "required": true
+        },
+        {
+          "name": "empresa",
+          "java_type": "Empresa",
+          "column": "empresa_id",
+          "type": "relation",
+          "referenced_column": "emp_id",
+          "relation_class": "Empresa",
+          "required": true
+        }
+
+      ]
+
+    }
+  ]
+}
