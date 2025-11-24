@@ -444,6 +444,12 @@ public class {entity_class}Controller {{
             self.create_or_update_messages(entity_name, output_base_path)
         except Exception as e:
             print(f"! Warning: no se pudo actualizar messages.properties: {e}")
+
+        # Añadir entrada en el archivo de rutas de prueba (curl/HTTP) para este módulo
+        try:
+            self.create_or_update_routes(entity_config, output_base_path)
+        except Exception as e:
+            print(f"! Warning: no se pudo actualizar generated_routes.http: {e}")
         entity_path = f"{output_base_path}{self.modules_base_path}/{entity_name.lower()}"
         
         paths = {
@@ -531,6 +537,89 @@ public class {entity_class}Controller {{
             with open(messages_file, 'w', encoding='utf-8') as f:
                 f.write(entry + '\n')
             print(f"✓ Creado: {messages_file} con clave {key}")
+
+    def create_or_update_routes(self, entity_config, output_base_path=None):
+        """Crea o actualiza un archivo con ejemplos curl/HTTP para probar los endpoints
+        generados por cada módulo. El archivo se guarda en 'automatizacion/generated_routes.http'.
+        No duplica entradas por endpoint.
+        """
+        if output_base_path is None:
+            output_base_path = self.base_path
+
+        routes_file = Path('automatizacion') / 'generated_routes.http'
+        routes_file.parent.mkdir(parents=True, exist_ok=True)
+
+        entity_name = entity_config['name']
+        endpoint = entity_config.get('endpoint', self._to_kebab_case(entity_name))
+        base_url = 'http://localhost:8080'
+        api_base = f"/api/{endpoint}"
+
+        # Generar JSON de ejemplo a partir de los campos DTO (sin id para POST)
+        sample_obj = {}
+        for field in entity_config.get('fields', []):
+            name = field['name']
+            if field.get('type') == 'relation':
+                # usar un id de referencia como ejemplo
+                sample_obj[f"{name}Id"] = 1
+            else:
+                jtype = field.get('java_type', 'String')
+                if jtype.lower() in ('string', 'char', 'varchar'):
+                    sample_obj[name] = f"sample_{name}"
+                elif jtype.lower() in ('int', 'integer', 'long', 'short'):
+                    sample_obj[name] = 1
+                elif jtype.lower() in ('double', 'float', 'bigdecimal'):
+                    sample_obj[name] = 0.0
+                elif jtype.lower() == 'boolean':
+                    sample_obj[name] = False
+                else:
+                    sample_obj[name] = f"sample_{name}"
+
+        import json as _json
+        post_body = _json.dumps(sample_obj, ensure_ascii=False, indent=2)
+        put_body = post_body
+
+        header = f"# ENDPOINT: {api_base}\n"
+        entry_lines = [
+            header,
+            f"### Listar {entity_name}",
+            f"GET {base_url}{api_base}",
+            "",
+            f"### Obtener {entity_name} por id",
+            f"GET {base_url}{api_base}/{{id}}",
+            "",
+            f"### Crear {entity_name}",
+            f"POST {base_url}{api_base}",
+            "Content-Type: application/json",
+            "",
+            post_body,
+            "",
+            f"### Actualizar {entity_name}",
+            f"PUT {base_url}{api_base}/{{id}}",
+            "Content-Type: application/json",
+            "",
+            put_body,
+            "",
+            f"### Eliminar {entity_name}",
+            f"DELETE {base_url}{api_base}/{{id}}",
+            "",
+            "# ------------------------------------------------------------",
+            "",
+        ]
+
+        # Comprobar si ya existe una entrada para este endpoint
+        if routes_file.exists():
+            with open(routes_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            if header.strip() in content:
+                print(f"✓ Ruta existente (omitido): {api_base} en {routes_file}")
+                return
+            with open(routes_file, 'a', encoding='utf-8') as f:
+                f.write('\n'.join(entry_lines))
+            print(f"✓ Añadido routes para: {api_base} en {routes_file}")
+        else:
+            with open(routes_file, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(entry_lines))
+            print(f"✓ Creado: {routes_file} con rutas para {api_base}")
 
     def create_exceptions(self, output_base_path=None):
         """Crea el paquete de exceptions con NotFoundException y GlobalExceptionHandler.
